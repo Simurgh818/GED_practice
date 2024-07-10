@@ -29,36 +29,46 @@ time_seg = 30; %for a 10 sec segment
 % TODO: get all of the channels
 
 Num_samples=time_seg*params.Fs;
-temp_data_ref = zeros(round(Num_samples),1);
-temp_data_sig = zeros(round(Num_samples),1);
+temp_data_ref = zeros(nCh, round(Num_samples));
+temp_data_sig = zeros(nCh, round(Num_samples));
 for i=1:Num_samples+1
-        temp_data_ref(i)=seeg_data_ref(1,i+round(time_seg*params.Fs));
-        temp_data_sig(i)=seeg_data_sig(1,i+round(time_seg*params.Fs));
+        temp_data_ref(:,i)=seeg_data_ref(:,i+round(time_seg*params.Fs));
+        temp_data_sig(:,i)=seeg_data_sig(:,i+round(time_seg*params.Fs));
 end
 
 %% Create covariance matrices
 
 % Reference Covariance matrix
+temp_data_ref_mean_centered = temp_data_ref - mean(temp_data_ref, 2);
+covR = temp_data_ref_mean_centered*temp_data_ref_mean_centered' / (size(temp_data_ref_mean_centered,2)-1);
 
 % Signal Covariance matrix
+temp_data_sig_mean_centered = temp_data_sig - mean(temp_data_sig, 2);
+covS = temp_data_sig_mean_centered*temp_data_sig_mean_centered' / (size(temp_data_sig_mean_centered,2)-1);
 
+
+%% Generalized Eigendecomposition
+
+[W,L] = eig(covS, covR);
+[eigvals, sidx] = sort(diag(L),'descend');
+eigvecs = W(:, sidx);
 
 %% Plotting:
 
 % TODO: plot all channels first 30 sec, then covariance matrices
 
 T = 1/params.Fs;
-[L,~] = size(temp_data_ref);
+[~,L] = size(temp_data_ref);
 t = (0:L-1)*T(1);
 figure(1)
 subplot(2,2,1)
-plot(t,temp_data_ref)
+plot(t,temp_data_ref(1,:))
 xlabel("time (sec)")
 ylabel("Amp (uV)")
 title(seeg_info_ref.label(1)+" raw - Resting state epoch")
 
 subplot(2,2,2)
-plot(t,temp_data_sig)
+plot(t,temp_data_sig(1,:))
 xlabel("time (sec)")
 ylabel("Amp (uV)")
 title(seeg_info_ref.label(1)+" raw - Task epoch")
